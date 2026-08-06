@@ -1,5 +1,7 @@
 # Miau C2 Framework
 
+[Русский](README_RU.md) | English
+
 ## Overview
 
 Miau is a remote administration tool with encrypted C2 communication, domain fronting tunneling, and web-based management panel.
