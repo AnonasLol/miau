@@ -2,6 +2,8 @@
 
 [Русский](README_RU.md) | English
 
+> **DISCLAIMER**: This project is provided for **educational and authorized security research purposes only**. The authors do not endorse or encourage any unauthorized access to computer systems. Use only on systems you own or have explicit permission to test.
+
 ## Overview
 
 Miau is a remote administration tool with encrypted C2 communication, domain fronting tunneling, and web-based management panel.
