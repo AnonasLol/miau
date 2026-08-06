@@ -1,0 +1,27 @@
+[server]
+host = "0.0.0.0"
+tcp_port = 9000
+api_port = 8443
+hb_interval = 15
+hb_timeout = 60
+
+[tls]
+cert_dir = "./certs"
+common_name = "miau-relay"
+org = "Miau"
+country = "NL"
+valid_days = 3650
+rsa_bits = 4096
+
+[auth]
+psk_rotate_hours = 168
+totp_issuer = "MiauPanel"
+totp_digits = 6
+totp_interval = 30
+operator_password = "miau"
+
+[store]
+db_path = "./miau.db"
+
+[modules]
+dir = "./modules"

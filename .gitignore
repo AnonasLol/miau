@@ -1,0 +1,45 @@
+# Binaries
+*.exe
+*.dll
+*.pyc
+*.so
+*.dylib
+__pycache__/
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+*.log
+*_out.txt
+*_err.txt
+*_pid.txt
+
+# Certificates and keys
+*.key
+*.pem
+*.p12
+certs/*.crt
+certs/*.der
+certs/fingerprint.txt
+
+# Temp files
+frame.bin
+frame.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Config with secrets (if any local overrides)
+config.local.toml
+
+# Temp files
+*.tmp
+*.temp

